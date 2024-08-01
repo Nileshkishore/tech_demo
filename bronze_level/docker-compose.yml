@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./myproject
+    ports:
+      - "8005:8000"
+    volumes:
+      - ./myproject:/app
+    depends_on:
+      - db
+    environment:
+      - DEBUG=1
+      - DB_HOST=127.0.0.1
+      - DB_PORT=5432
+      - DB_NAME=postgres_name
+      - DB_USER=firstdatabase
+      - DB_PASSWORD=1234
+    networks:
+      - stock-network
+
+  frontend:
+    build:
+      context: ./my-app
+    ports:
+      - "3005:3000"
+    volumes:
+      - ./my-app:/app
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    networks:
+      - stock-network
+
+  db:
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=first_database
+      - POSTGRES_USER=postgres_user
+      - POSTGRES_PASSWORD=1234
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres_user -d first_database"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 5s
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9002:9090"  # Expose Prometheus on port 9002
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - stock-network
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3003:3000"  # Expose Grafana on port 3005
+    depends_on:
+      - prometheus
+    networks:
+      - stock-network
+
+  metrics_collector:
+    build:
+      context: ./metrics_collector
+    ports:
+      - "7878:7878"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - stock-network
+
+volumes:
+  postgres_data:
+
+networks:
+  stock-network:
+    driver: bridge

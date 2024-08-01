@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./myproject
+    ports:
+      - "8005:8000"
+    volumes:
+      - ./myproject:/app
+    depends_on:
+      - db
+    environment:
+      - DEBUG=1
+      - DB_HOST=127.0.0.1
+      - DB_PORT=5432
+      - DB_NAME=postgres_name
+      - DB_USER=firstdatabase
+      - DB_PASSWORD=1234
+
+  frontend:
+    build:
+      context: ./my-app
+    ports:
+      - "3005:3000"
+    volumes:
+      - ./my-app:/app
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+
+  db:
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=first_database
+      - POSTGRES_USER=postgres_user
+      - POSTGRES_PASSWORD=1234
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
